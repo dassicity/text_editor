@@ -17,6 +17,7 @@ void enableRawMode(){
 
 int main()
 {
+    enableRawMode();
     char c;
     // char text[50] = "";
     while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q'){
