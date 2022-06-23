@@ -1,9 +1,18 @@
 #include <unistd.h>
-#include <stdio.h>
+#include <termios.h>
+// #include<string.h>
+
+void enableRawMode(){
+
+}
+
 int main()
 {
     char c;
-    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q')
-        ;
+    // char text[50] = "";
+    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q'){
+        //  strncat(text, &c, 1);
+    }
+    // printf(text, '\n');
     return 0;
 }
