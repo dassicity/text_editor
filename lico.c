@@ -1,3 +1,5 @@
+// Shell prompt - export PS1="\[$(tput setaf 1)\]\[$(tput bold)\]soumyanil@text-editor: \[$(tput sgr0)\]"
+
 #include <ctype.h>
 #include <unistd.h>
 #include <termios.h>
@@ -15,8 +17,8 @@ void enableRawMode(){
     atexit(disableRawMode);
 
     struct termios raw = original_termios;
-    raw.c_iflag &= ~(IXON);
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+    raw.c_iflag &= ~(IXON | ICRNL);
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw); 
 
 }
