@@ -1,5 +1,7 @@
 // Shell prompt - export PS1="\[$(tput setaf 1)\]\[$(tput bold)\]soumyanil@text-editor: \[$(tput sgr0)\]"
 
+// ------ includes ------
+
 #include <ctype.h>
 #include <unistd.h>
 #include <termios.h>
@@ -7,7 +9,16 @@
 #include <stdlib.h>
 #include <errno.h>
 // #include<string.h>
+
+// ------ define ------
+
+#define CTRL_KEY(k) ((k)&0x1f)
+
+// ------ data ------
+
 struct termios original_termios;
+
+// ------ terminal ------
 
 void die(const char *s)
 {
@@ -40,26 +51,42 @@ void enableRawMode()
         die("tcsetattr");
 }
 
+char editorReadKey()
+{
+    int nread;
+    char c = '\0';
+
+    while ((nread = read(STDIN_FILENO, &c, 1)) != 1)
+    {
+        if (nread == -1 && errno != EAGAIN)
+            die("read");
+    }
+
+    return c;
+}
+
+void editorProcessKeypress()
+{
+    char c = editorReadKey();
+
+    switch (c)
+    {
+    case CTRL_KEY('q'):
+        exit(0);
+        break;
+    }
+}
+
+// ------ init ------
+
 int main()
 {
     enableRawMode();
+
     while (1)
     {
-        char c = '\0';
-        // char text[50] = "";
-        if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
-            die("read");
-
-        if (iscntrl(c))
-        {
-            printf("%d\r\n", c);
-        }
-        else
-        {
-            printf("%d ('%c)\r\n", c, c);
-        }
-        if (c == 'q')
-            break;
+        editorProcessKeypress();
     }
+
     return 0;
 }
