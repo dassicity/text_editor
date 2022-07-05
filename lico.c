@@ -22,6 +22,8 @@ struct termios original_termios;
 
 void die(const char *s)
 {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[E", 3);
     perror(s);
     exit(1);
 }
@@ -65,6 +67,14 @@ char editorReadKey()
     return c;
 }
 
+void editorRefreshScreen()
+{
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[E", 3);
+}
+
+// ------ input ------
+
 void editorProcessKeypress()
 {
     char c = editorReadKey();
@@ -72,6 +82,8 @@ void editorProcessKeypress()
     switch (c)
     {
     case CTRL_KEY('q'):
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        write(STDOUT_FILENO, "\x1b[E", 3);
         exit(0);
         break;
     }
@@ -85,6 +97,7 @@ int main()
 
     while (1)
     {
+        editorRefreshScreen();
         editorProcessKeypress();
     }
 
