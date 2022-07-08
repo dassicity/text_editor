@@ -76,6 +76,9 @@ char editorReadKey()
 
 int getCursorPositions(int *rows, int *columns)
 {
+    char buf[32];
+    unsigned int i = 0;
+
     if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
         return -1;
 
