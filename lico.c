@@ -107,7 +107,7 @@ int getWindowSize(int *rows, int *cols)
 {
     struct winsize ws;
 
-    if (1 || (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws)) == -1 || ws.ws_col == 0)
+    if ((ioctl(STDIN_FILENO, TIOCGWINSZ, &ws)) == -1 || ws.ws_col == 0)
     {
         if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
             return -1;
@@ -128,7 +128,12 @@ void editorDrawRows()
     int y;
     for (y = 0; y < E.screenRows; y++)
     {
-        write(STDOUT_FILENO, "~\r\n", 3);
+        write(STDOUT_FILENO, "~", 1);
+
+        if (y < E.screenRows - 1)
+        {
+            write(STDOUT_FILENO, "\r\n", 2);
+        }
     }
 }
 
