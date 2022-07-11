@@ -154,27 +154,36 @@ void abFree(struct abuf *ab)
 
 // ------ output ------
 
-void editorDrawRows()
+void editorDrawRows(struct abuf *ab)
 {
     int y;
     for (y = 0; y < E.screenRows; y++)
     {
-        write(STDOUT_FILENO, "~", 1);
+        // write(STDOUT_FILENO, "~", 1);
+        abAppend(ab, "~", 1);
 
         if (y < E.screenRows - 1)
         {
-            write(STDOUT_FILENO, "\r\n", 2);
+            // write(STDOUT_FILENO, "\r\n", 2);
+            abAppend(ab, "\r\n", 2);
         }
     }
 }
 
 void editorRefreshScreen()
 {
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    struct abuf ab = ABUF_INIT;
+    // write(STDOUT_FILENO, "\x1b[2J", 4);
+    abAppend(&ab, "\x1b[2J", 4);
+    // write(STDOUT_FILENO, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[H", 3);
 
-    editorDrawRows();
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    editorDrawRows(&ab);
+    // write(STDOUT_FILENO, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[H", 3);
+
+    write(STDOUT_FILENO, ab.b, ab.len);
+    abFree(&ab);
 }
 
 // ------ input ------
