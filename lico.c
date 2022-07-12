@@ -15,6 +15,7 @@
 // ------ define ------
 
 #define CTRL_KEY(k) ((k)&0x1f)
+#define LICO_VERSION "0.0.1"
 
 // ------ data ------
 
@@ -160,8 +161,20 @@ void editorDrawRows(struct abuf *ab)
     for (y = 0; y < E.screenRows; y++)
     {
         // write(STDOUT_FILENO, "~", 1);
-        abAppend(ab, "~", 1);
+        if (y == E.screenRows / 3)
+        {
+            char welcome[80];
+            int welcomelen = snprintf(welcome, sizeof(welcome), "LICO EDITOR -- Version %s", LICO_VERSION);
+            if (welcomelen > E.screenColums)
+                welcomelen = E.screenColums;
+            abAppend(ab, welcome, welcomelen);
+        }
+        else
+        {
+            abAppend(ab, "~", 1);
+        }
 
+        abAppend(ab, "\x1b[K", 3); // erase in line
         if (y < E.screenRows - 1)
         {
             // write(STDOUT_FILENO, "\r\n", 2);
@@ -172,15 +185,19 @@ void editorDrawRows(struct abuf *ab)
 
 void editorRefreshScreen()
 {
-    struct abuf ab = ABUF_INIT;
     // write(STDOUT_FILENO, "\x1b[2J", 4);
-    abAppend(&ab, "\x1b[2J", 4);
     // write(STDOUT_FILENO, "\x1b[H", 3);
+    // write(STDOUT_FILENO, "\x1b[H", 3);
+
+    struct abuf ab = ABUF_INIT;
+
+    abAppend(&ab, "\x1b[?25l", 6); // reset mode -cursor hiding
+    // abAppend(&ab, "\x1b[2J", 4);   // clear entire screen
     abAppend(&ab, "\x1b[H", 3);
 
     editorDrawRows(&ab);
-    // write(STDOUT_FILENO, "\x1b[H", 3);
     abAppend(&ab, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[?25h", 6); // set mode - cursor reappear(might not work in some terminals)
 
     write(STDOUT_FILENO, ab.b, ab.len);
     abFree(&ab);
