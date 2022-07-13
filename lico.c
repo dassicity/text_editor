@@ -167,6 +167,14 @@ void editorDrawRows(struct abuf *ab)
             int welcomelen = snprintf(welcome, sizeof(welcome), "LICO EDITOR -- Version %s", LICO_VERSION);
             if (welcomelen > E.screenColums)
                 welcomelen = E.screenColums;
+            int padding = (E.screenColums - welcomelen) / 2;
+            if (padding)
+            {
+                abAppend(ab, "~", 1);
+                padding--;
+            }
+            while (padding--)
+                abAppend(ab, " ", 1);
             abAppend(ab, welcome, welcomelen);
         }
         else
