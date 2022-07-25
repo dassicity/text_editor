@@ -294,7 +294,7 @@ void editorDrawRows(struct abuf *ab)
         // write(STDOUT_FILENO, "~", 1);
         if (y >= E.numrows) // we check if the line is a part of the text buffer to be printed
         {
-            if (y == E.screenRows / 3)
+            if (E.numrows == 0 && y == E.screenRows / 3)
             {
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome), "LICO EDITOR -- Version %s", LICO_VERSION);
