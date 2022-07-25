@@ -2,10 +2,14 @@
 
 // ------ includes ------
 
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+
 #include <ctype.h>
 #include <unistd.h>
 #include <termios.h>
-#include <stdio.h>
+#include <stdio.h> // Required for FILE, fopen, getline()
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/types.h> // Required for ssize_t
@@ -224,16 +228,30 @@ int getWindowSize(int *rows, int *cols)
 
 // ------ file i/o ------
 
-void editorOpen()
+void editorOpen(char *filename)
 {
-    char *line = "Hello World!"; // hardcoding a line for testing
-    ssize_t linelen = 12;        // it return either the size or a negative value for errors
+    FILE *fp = fopen(filename, "r");
+    if (!fp)
+        die("fopen");
 
-    E.row.size = linelen;               // initializing the size of "erow" data type var "row". it stores the line of text to be printed on the screen
-    E.row.chars = malloc(linelen + 1);  // dynamically declaring the char array to store the string. the +1 is due to the fact that we need to store an additional '\0\ char at the end to denote string end.
-    memcpy(E.row.chars, line, linelen); // memcpy is a function used to copy the contents of second arg to the first arg for third arg number of times
-    E.row.chars[linelen] = '\0';        // assigning string end symbol '\0' at the end to denote end of string
-    E.numrows = 1;                      // number of rows the editor will display
+    char *line = NULL;  // null line pointer. it points to the memory that will be allocated to the line that will be read next
+    size_t linecap = 0; // line capacity of 0
+    ssize_t linelen;    // sszie_t returns either the size or a negative value for errors
+    linelen = getline(&line, &linecap, fp);
+
+    if (linelen != -1)
+    {
+        while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
+            linelen--;
+
+        E.row.size = linelen;               // initializing the size of "erow" data type var "row". it stores the line of text to be printed on the screen
+        E.row.chars = malloc(linelen + 1);  // dynamically declaring the char array to store the string. the +1 is due to the fact that we need to store an additional '\0\ char at the end to denote string end.
+        memcpy(E.row.chars, line, linelen); // memcpy is a function used to copy the contents of second arg to the first arg for third arg number of times
+        E.row.chars[linelen] = '\0';        // assigning string end symbol '\0' at the end to denote end of string
+        E.numrows = 1;                      // number of rows the editor will display
+    }
+    free(line);
+    fclose(fp);
 }
 
 // ------ append buffer ------
@@ -430,11 +448,14 @@ void initEditor()
         die("Get Window Size");
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     enableRawMode();
     initEditor();
-    editorOpen();
+    if (argc >= 2)
+    {
+        editorOpen(argv[1]);
+    }
 
     while (1)
     {
