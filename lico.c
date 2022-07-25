@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <stdlib.h>
+#include <sys/types.h> // Required for ssize_t
+#include <stdlib.h>    // Required for malloc,
 #include <errno.h>
 // #include<string.h>
 
@@ -32,10 +33,18 @@ enum editorKey
 
 // ------ data ------
 
+typedef struct erow
+{
+    int size;
+    char *chars;
+} erow;
+
 struct editorConfig
 {
     int cx, cy;
     int screenRows, screenColums;
+    int numrows;
+    erow row;
     struct termios original_termios;
 };
 
@@ -213,6 +222,20 @@ int getWindowSize(int *rows, int *cols)
     }
 }
 
+// ------ file i/o ------
+
+void editorOpen()
+{
+    char *line = "Hello World!"; // hardcoding a line for testing
+    ssize_t linelen = 12;        // it return either the size or a negative value for errors
+
+    E.row.size = linelen;               // initializing the size of "erow" data type var "row". it stores the line of text to be printed on the screen
+    E.row.chars = malloc(linelen + 1);  // dynamically declaring the char array to store the string. the +1 is due to the fact that we need to store an additional '\0\ char at the end to denote string end.
+    memcpy(E.row.chars, line, linelen); // memcpy is a function used to copy the contents of second arg to the first arg for third arg number of times
+    E.row.chars[linelen] = '\0';        // assigning string end symbol '\0' at the end to denote end of string
+    E.numrows = 1;                      // number of rows the editor will display
+}
+
 // ------ append buffer ------
 
 struct abuf
@@ -251,25 +274,35 @@ void editorDrawRows(struct abuf *ab)
     for (y = 0; y < E.screenRows; y++)
     {
         // write(STDOUT_FILENO, "~", 1);
-        if (y == E.screenRows / 3)
+        if (y >= E.numrows) // we check if the line is a part of the text buffer to be printed
         {
-            char welcome[80];
-            int welcomelen = snprintf(welcome, sizeof(welcome), "LICO EDITOR -- Version %s", LICO_VERSION);
-            if (welcomelen > E.screenColums)
-                welcomelen = E.screenColums;
-            int padding = (E.screenColums - welcomelen) / 2;
-            if (padding)
+            if (y == E.screenRows / 3)
+            {
+                char welcome[80];
+                int welcomelen = snprintf(welcome, sizeof(welcome), "LICO EDITOR -- Version %s", LICO_VERSION);
+                if (welcomelen > E.screenColums)
+                    welcomelen = E.screenColums;
+                int padding = (E.screenColums - welcomelen) / 2;
+                if (padding)
+                {
+                    abAppend(ab, "~", 1);
+                    padding--;
+                }
+                while (padding--)
+                    abAppend(ab, " ", 1);
+                abAppend(ab, welcome, welcomelen);
+            }
+            else
             {
                 abAppend(ab, "~", 1);
-                padding--;
             }
-            while (padding--)
-                abAppend(ab, " ", 1);
-            abAppend(ab, welcome, welcomelen);
         }
         else
         {
-            abAppend(ab, "~", 1);
+            int len = E.row.size;     // initializing the lenth of string to printed
+            if (len > E.screenColums) // truncate the len in case it goes past our window size
+                len = E.screenColums;
+            abAppend(ab, E.row.chars, len); // print the string
         }
 
         abAppend(ab, "\x1b[K", 3); // erase in line
@@ -391,6 +424,7 @@ void initEditor()
 {
     E.cx = 0;
     E.cy = 0;
+    E.numrows = 0;
 
     if (getWindowSize(&E.screenRows, &E.screenColums) == -1)
         die("Get Window Size");
@@ -400,6 +434,7 @@ int main()
 {
     enableRawMode();
     initEditor();
+    editorOpen();
 
     while (1)
     {
