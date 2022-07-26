@@ -48,7 +48,7 @@ struct editorConfig
     int cx, cy;
     int screenRows, screenColums;
     int numrows;
-    erow row;
+    erow *row;
     struct termios original_termios;
 };
 
@@ -226,6 +226,20 @@ int getWindowSize(int *rows, int *cols)
     }
 }
 
+// ------ row operations ------
+
+void editorAppendRow(char *line, size_t len)
+{
+    E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1)); // dynamically allocating space for "row" array of erow data type.
+
+    int at = E.numrows;
+    E.row[at].size = len;               // initializing the size of "erow" data type var "row". it stores the line of text to be printed on the screen
+    E.row[at].chars = malloc(len + 1);  // dynamically declaring the char array to store the string. the +1 is due to the fact that we need to store an additional '\0\ char at the end to denote string end.
+    memcpy(E.row[at].chars, line, len); // memcpy is a function used to copy the contents of second arg to the first arg for third arg number of times
+    E.row[at].chars[len] = '\0';        // assigning string end symbol '\0' at the end to denote end of string
+    E.numrows++;                        // number of rows the editor will display
+}
+
 // ------ file i/o ------
 
 void editorOpen(char *filename)
@@ -237,18 +251,13 @@ void editorOpen(char *filename)
     char *line = NULL;  // null line pointer. it points to the memory that will be allocated to the line that will be read next
     size_t linecap = 0; // line capacity of 0
     ssize_t linelen;    // sszie_t returns either the size or a negative value for errors
-    linelen = getline(&line, &linecap, fp);
 
-    if (linelen != -1)
+    while ((linelen = getline(&line, &linecap, fp)) != -1)
     {
         while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
             linelen--;
 
-        E.row.size = linelen;               // initializing the size of "erow" data type var "row". it stores the line of text to be printed on the screen
-        E.row.chars = malloc(linelen + 1);  // dynamically declaring the char array to store the string. the +1 is due to the fact that we need to store an additional '\0\ char at the end to denote string end.
-        memcpy(E.row.chars, line, linelen); // memcpy is a function used to copy the contents of second arg to the first arg for third arg number of times
-        E.row.chars[linelen] = '\0';        // assigning string end symbol '\0' at the end to denote end of string
-        E.numrows = 1;                      // number of rows the editor will display
+        editorAppendRow(line, linelen);
     }
     free(line);
     fclose(fp);
@@ -317,10 +326,10 @@ void editorDrawRows(struct abuf *ab)
         }
         else
         {
-            int len = E.row.size;     // initializing the lenth of string to printed
+            int len = E.row[y].size;  // initializing the lenth of string to printed
             if (len > E.screenColums) // truncate the len in case it goes past our window size
                 len = E.screenColums;
-            abAppend(ab, E.row.chars, len); // print the string
+            abAppend(ab, E.row[y].chars, len); // print the string
         }
 
         abAppend(ab, "\x1b[K", 3); // erase in line
@@ -443,6 +452,7 @@ void initEditor()
     E.cx = 0;
     E.cy = 0;
     E.numrows = 0;
+    E.row = NULL;
 
     if (getWindowSize(&E.screenRows, &E.screenColums) == -1)
         die("Get Window Size");
