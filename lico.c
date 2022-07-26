@@ -48,6 +48,7 @@ struct editorConfig
     int cx, cy;
     int screenRows, screenColums;
     int numrows;
+    int rowoff; // Row offset - used for vertical scrolling
     erow *row;
     struct termios original_termios;
 };
@@ -295,13 +296,27 @@ void abFree(struct abuf *ab)
 
 // ------ output ------
 
+void editorScroll()
+{
+    if (E.cy < E.rowoff)
+    {
+        E.rowoff = E.cy;
+    }
+
+    if (E.cy >= E.rowoff + E.screenColums)
+    {
+        E.rowoff = E.cy - E.screenColums + 1;
+    }
+}
+
 void editorDrawRows(struct abuf *ab)
 {
     int y;
     for (y = 0; y < E.screenRows; y++)
     {
+        int filerow = y + E.rowoff; //
         // write(STDOUT_FILENO, "~", 1);
-        if (y >= E.numrows) // we check if the line is a part of the text buffer to be printed
+        if (filerow >= E.numrows) // we check if the line is a part of the text buffer to be printed
         {
             if (E.numrows == 0 && y == E.screenRows / 3)
             {
@@ -326,10 +341,10 @@ void editorDrawRows(struct abuf *ab)
         }
         else
         {
-            int len = E.row[y].size;  // initializing the lenth of string to printed
-            if (len > E.screenColums) // truncate the len in case it goes past our window size
+            int len = E.row[filerow].size; // initializing the lenth of string to printed
+            if (len > E.screenColums)      // truncate the len in case it goes past our window size
                 len = E.screenColums;
-            abAppend(ab, E.row[y].chars, len); // print the string
+            abAppend(ab, E.row[filerow].chars, len); // print the string
         }
 
         abAppend(ab, "\x1b[K", 3); // erase in line
@@ -343,6 +358,7 @@ void editorDrawRows(struct abuf *ab)
 
 void editorRefreshScreen()
 {
+    editorScroll();
     // write(STDOUT_FILENO, "\x1b[2J", 4);
     // write(STDOUT_FILENO, "\x1b[H", 3);
     // write(STDOUT_FILENO, "\x1b[H", 3);
@@ -380,7 +396,7 @@ void editorMoveCursor(int key)
         break;
 
     case ARROW_DOWN:
-        if (E.cy != E.screenColums - 1)
+        if (E.cy < E.numrows)
         {
             E.cy++;
         }
@@ -451,6 +467,7 @@ void initEditor()
 {
     E.cx = 0;
     E.cy = 0;
+    E.rowoff = 0;
     E.numrows = 0;
     E.row = NULL;
 
